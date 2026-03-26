@@ -127,17 +127,21 @@ export function useTypingContract({ signer }: UseTypingContractOpts) {
           hash: receipt?.hash || tx.hash,
           explorerUrl: VOYAGER_TX(receipt?.hash || tx.hash),
         };
-      } catch (err: any) {
-        const message = err?.shortMessage || err?.reason || err?.message || "Transaction failed";
+      } catch (e: any) {
+        const isUserRejection = e.code === "ACTION_REJECTED" || e.code === 4001;
+        const errorMessage = isUserRejection
+          ? "Transaction rejected in wallet."
+          : e.message || "An unknown error occurred.";
+
         setTxLog((prev) =>
-          prev.map((item) =>
-            item.id === txId
+          prev.map((tx) =>
+            tx.id === txId
               ? {
-                  ...item,
+                  ...tx,
                   status: "error",
-                  error: message,
+                  error: errorMessage,
                 }
-              : item
+              : tx
           )
         );
         return null;

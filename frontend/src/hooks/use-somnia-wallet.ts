@@ -112,63 +112,33 @@ export function useSomniaWallet() {
     }
   }, [ethereum, ensureSomniaNetwork, refreshWalletState]);
 
-  const switchToSomnia = useCallback(async () => {
-    if (!ethereum) return;
-    try {
-      setError(null);
-      await ensureSomniaNetwork();
-      const chainId = (await ethereum.request({ method: "eth_chainId" })) as string;
-      setChainIdHex(chainId);
-    } catch (err: any) {
-      setError(err?.message || "Failed to switch to Somnia network.");
-    }
-  }, [ensureSomniaNetwork, ethereum]);
-
   const disconnect = useCallback(() => {
     setAccount(null);
   }, []);
 
-  const provider = useMemo(() => {
-    if (!ethereum) return null;
-    return new BrowserProvider(ethereum as any);
-  }, [ethereum]);
+  const getSigner = useCallback(async (): Promise<JsonRpcSigner | null> => {
+    if (!account || !ethereum) return null;
 
-  const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadSigner = async () => {
-      if (!provider || !account) {
-        setSigner(null);
-        return;
+    if (!isCorrectNetwork) {
+      const switched = await ensureSomniaNetwork();
+      if (!switched) {
+        setError("Please switch to the Somnia network in MetaMask.");
+        return null;
       }
-      try {
-        const nextSigner = await provider.getSigner(account);
-        if (!cancelled) setSigner(nextSigner);
-      } catch {
-        if (!cancelled) setSigner(null);
-      }
-    };
+    }
 
-    loadSigner();
-    return () => {
-      cancelled = true;
-    };
-  }, [provider, account]);
+    const provider = new BrowserProvider(ethereum);
+    return provider.getSigner(account);
+  }, [account, ethereum, isCorrectNetwork, ensureSomniaNetwork]);
 
   return {
-    hasMetaMask,
     account,
-    chainIdHex,
-    isCorrectNetwork,
+    hasMetaMask,
     isConnecting,
+    isCorrectNetwork,
     error,
-    provider,
-    signer,
     connect,
     disconnect,
-    switchToSomnia,
     getSigner,
   };
 }

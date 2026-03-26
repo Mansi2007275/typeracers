@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { type JsonRpcSigner } from "ethers";
 import ChallengeText from "./ChallengeText";
 import TransactionLog from "./TransactionLog";
 import RaceResults from "./RaceResults";
@@ -17,14 +18,23 @@ export default function TypingGame() {
   const {
     hasMetaMask,
     account,
-    signer,
     isConnecting,
     isCorrectNetwork,
     error: walletError,
     connect,
     disconnect,
-    switchToSomnia,
+    getSigner,
   } = useSomniaWallet();
+
+  const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
+
+  useEffect(() => {
+    if (account) {
+      getSigner().then(setSigner);
+    } else {
+      setSigner(null);
+    }
+  }, [account, getSigner]);
 
   const [gameState, setGameState] = useState<GameState>("idle");
   const [challenge, setChallenge] = useState<GeneratedChallenge | null>(null);
@@ -264,7 +274,7 @@ export default function TypingGame() {
         error={walletError}
         onConnect={connect}
         onDisconnect={disconnect}
-        onSwitchNetwork={switchToSomnia}
+        onSwitchNetwork={getSigner}
       />
 
       {!isCorrectNetwork && account && (
